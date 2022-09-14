@@ -119,6 +119,10 @@ PRODUCT_PACKAGES += \
     init.sensor_1_0.rc \
     ueventd.mtk.rc
 
+# Sensors
+PRODUCT_PACKAGES += \
+    libsensorndkbridge
+
 # Soong namespaces
 PRODUCT_SOONG_NAMESPACES += \
     $(LOCAL_PATH)
