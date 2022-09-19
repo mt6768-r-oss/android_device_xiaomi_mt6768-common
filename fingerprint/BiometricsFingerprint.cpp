@@ -16,8 +16,6 @@
 #define LOG_TAG "android.hardware.biometrics.fingerprint@2.1-service.mt6768"
 #define LOG_VERBOSE "android.hardware.biometrics.fingerprint@2.1-service.mt6768"
 
-#include <android-base/properties.h>
-
 #include <hardware/hw_auth_token.h>
 
 #include <hardware/hardware.h>
@@ -26,24 +24,6 @@
 
 #include <inttypes.h>
 #include <unistd.h>
-
-
-namespace {
-
-std::map<FpHal, std::string> fpHals = {
-    {FpHal::FPC, FINGERPRINT_HARDWARE_MODULE_ID},
-    {FpHal::GOODIX, "gf_fingerprint"},
-};
-
-std::string FpHalToString(FpHal hal) {
-    switch(hal) {
-        case FpHal::FPC: return "fpc";
-        case FpHal::GOODIX: return "goodix";
-        case FpHal::UNKNOWN: return "none";
-    }
-}
-
-} // anonymous namespace
 
 namespace android {
 namespace hardware {
@@ -62,24 +42,10 @@ BiometricsFingerprint *BiometricsFingerprint::sInstance = nullptr;
 
 BiometricsFingerprint::BiometricsFingerprint() : mClientCallback(nullptr), mDevice(nullptr) {
     sInstance = this; // keep track of the most recent instance
-
-    for (auto const& pair : fpHals) {
-        ALOGI("Trying to open HAL module %s", pair.second.c_str());
-        mDevice = openHal(pair.second);
-        if (mDevice) {
-            ALOGI("Opened HW module %s", pair.second.c_str());
-            currentHal = pair.first;
-            break;
-        } else {
-            ALOGE("Can't open HAL module %s", pair.second.c_str());
-        }
-    }
-
+    mDevice = openHal();
     if (!mDevice) {
-        ALOGE("Failed to open any HW modules!");
+        ALOGE("Can't open HAL module");
     }
-
-    android::base::SetProperty("persist.vendor.sys.fp.vendor", FpHalToString(currentHal));
 }
 
 BiometricsFingerprint::~BiometricsFingerprint() {
@@ -245,11 +211,11 @@ IBiometricsFingerprint* BiometricsFingerprint::getInstance() {
     return sInstance;
 }
 
-fingerprint_device_t* BiometricsFingerprint::openHal(std::string hal) {
+fingerprint_device_t* BiometricsFingerprint::openHal() {
     int err;
     const hw_module_t *hw_mdl = nullptr;
     ALOGD("Opening fingerprint hal library...");
-    if (0 != (err = hw_get_module(hal.c_str(), &hw_mdl))) {
+    if (0 != (err = hw_get_module(FINGERPRINT_HARDWARE_MODULE_ID, &hw_mdl))) {
         ALOGE("Can't open fingerprint HW Module, error: %d", err);
         return nullptr;
     }
